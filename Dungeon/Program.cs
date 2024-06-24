@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 public class GameMap
@@ -11,6 +11,7 @@ public class GameMap
         this.size = size;
         this.map = InitializeMap();
         PlaceObject(Program.NPC_SYMBOL);
+        PlaceEnemies();
     }
 
     private char[][] InitializeMap()
@@ -45,6 +46,14 @@ public class GameMap
         int x = random.Next(0, size);
         int y = random.Next(0, size);
         map[x][y] = symbol;
+    }
+
+    public void PlaceEnemies()
+    {
+        for (int i = 0; i < Program.ENEMY_COUNT; i++)
+        {
+            PlaceObject(Program.ENEMY_SYMBOL);
+        }
     }
 }
 
@@ -82,17 +91,53 @@ public class Player
         {
             Console.WriteLine(Program.TEXT_NPC_ENCOUNTER);
         }
+        else if (gameMap.map[x][y] == Program.ENEMY_SYMBOL)
+        {
+            Console.WriteLine(Program.TEXT_ENEMY_ENCOUNTER);
+            PlayRockPaperScissors();
+        }
+    }
+
+    private void PlayRockPaperScissors()
+    {
+        Random random = new Random();
+        string[] choices = { "Камень", "Ножницы", "Бумага" };
+        string playerChoice = "";
+        string enemyChoice = choices[random.Next(0, 3)];
+
+        Console.Write("Выберите ход (Камень, Ножницы, Бумага): ");
+        playerChoice = Console.ReadLine();
+
+        Console.WriteLine($"Враг выбрал: {enemyChoice}");
+
+        if (playerChoice == enemyChoice)
+        {
+            Console.WriteLine("Ничья!");
+        }
+        else if ((playerChoice == "Камень" && enemyChoice == "Ножницы") ||
+                 (playerChoice == "Ножницы" && enemyChoice == "Бумага") ||
+                 (playerChoice == "Бумага" && enemyChoice == "Камень"))
+        {
+            Console.WriteLine("Вы победили!");
+        }
+        else
+        {
+            Console.WriteLine("Вы проиграли!");
+        }
     }
 }
 
 public static class Program
 {
     public const int MAP_SIZE = 10;
+    public const int ENEMY_COUNT = 5;
     public const char BLOCKED_SYMBOL = '#';
     public const char PATH_SYMBOL = '.';
     public const char PLAYER_SYMBOL = 'P';
     public const char NPC_SYMBOL = 'N';
+    public const char ENEMY_SYMBOL = 'E';
     public const string TEXT_NPC_ENCOUNTER = "Вы встретили NPC!";
+    public const string TEXT_ENEMY_ENCOUNTER = "Вы встретили врага!";
 
     static void Main(string[] args)
     {
