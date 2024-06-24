@@ -213,9 +213,9 @@ public class Game
         int enemyScore = 0;
         Dictionary<int, string> moveMapping = new Dictionary<int, string>
         {
-            { 1, "Камень" },
-            { 2, "Ножницы" },
-            { 3, "Бумага" }
+            { 1, "Rock" },
+            { 2, "Scissors" },
+            { 3, "Paper" }
         };
         Random random = new Random();
 
@@ -236,9 +236,9 @@ public class Game
             {
                 Console.WriteLine(Program.TEXT_DRAW);
             }
-            else if ((playerMove == "Камень" && enemyMove == "Ножницы") ||
-                     (playerMove == "Ножницы" && enemyMove == "Бумага") ||
-                     (playerMove == "Бумага" && enemyMove == "Камень"))
+            else if ((playerMove == "Rock" && enemyMove == "Scissors") ||
+                     (playerMove == "Scissors" && enemyMove == "Paper") ||
+                     (playerMove == "Paper" && enemyMove == "Rock"))
             {
                 Console.WriteLine(Program.TEXT_ROUND_WIN);
                 playerScore++;
@@ -388,24 +388,24 @@ public static class Program
     public const char HEALTH_POTION_SYMBOL = 'H';
     public const char SOUL_SYMBOL = 'S';
     public const char NEXT_LEVEL_SYMBOL = 'L';
-    public const string TEXT_GAME_OVER = "Игра окончена!";
-    public const string TEXT_PORTAL_ENTERED = "Вы вошли в портал!";
-    public const string TEXT_PORTAL_CREATED = "Создан портал для следующего уровня!";
-    public const string TEXT_PORTAL_NOT_ENOUGH_SOULS = "Недостаточно душ для создания портала!";
-    public const string TEXT_LOST_ALL_LIVES = "Вы потеряли все жизни!";
-    public const string TEXT_RESTART_GAME = "Перезапуск игры...";
-    public const string TEXT_INVALID_INPUT = "Неверный ввод!";
-    public const string TEXT_CHOOSE_MOVE = "Выберите ход (1: Камень, 2: Ножницы, 3: Бумага): ";
-    public const string TEXT_OPPONENT_CHOICE = "Противник выбрал";
-    public const string TEXT_DRAW = "Ничья!";
-    public const string TEXT_ROUND_WIN = "Вы выиграли раунд!";
-    public const string TEXT_ROUND_LOSS = "Вы проиграли раунд!";
-    public const string TEXT_SCORE = "Счет - Вы: {player_score} Противник: {enemy_score}";
-    public const string TEXT_GAME_WIN = "Вы выиграли игру!";
-    public const string TEXT_GAME_LOSS = "Вы проиграли игру!";
-    public const string TEXT_ENEMY_ENCOUNTER = "Вы встретили врага!";
-    public const string TEXT_NPC_ENCOUNTER = "Вы встретили NPC!";
-    public const string TEXT_ENTER_DIRECTION = "Введите направление (w, a, s, d) или 'h' для использования зелья, 'q' для выхода: ";
+    public const string TEXT_GAME_OVER = "End!";
+    public const string TEXT_PORTAL_ENTERED = "You went in the portal!";
+    public const string TEXT_PORTAL_CREATED = "The portal was created!";
+    public const string TEXT_PORTAL_NOT_ENOUGH_SOULS = "You have not enough souls!";
+    public const string TEXT_LOST_ALL_LIVES = "You have lost all souls!";
+    public const string TEXT_RESTART_GAME = "Restart";
+    public const string TEXT_INVALID_INPUT = "Wrong input!";
+    public const string TEXT_CHOOSE_MOVE = "Choice (1: Rock, 2: Scissors, 3: Paper): ";
+    public const string TEXT_OPPONENT_CHOICE = "Opponent choiced";
+    public const string TEXT_DRAW = "Break!";
+    public const string TEXT_ROUND_WIN = "You win!";
+    public const string TEXT_ROUND_LOSS = "You last round!";
+    public const string TEXT_SCORE = "You: {player_score} Opponent: {enemy_score}";
+    public const string TEXT_GAME_WIN = "You win!";
+    public const string TEXT_GAME_LOSS = "You losed!";
+    public const string TEXT_ENEMY_ENCOUNTER = "You meet oponent!";
+    public const string TEXT_NPC_ENCOUNTER = "You meet NPC!";
+    public const string TEXT_ENTER_DIRECTION = "Input (w, a, s, d) or 'h' for use potion, 'q' for quit: ";
 
     static void Main(string[] args)
     {
