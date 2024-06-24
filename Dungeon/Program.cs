@@ -10,8 +10,8 @@ public class GameMap
     {
         this.size = size;
         this.map = InitializeMap();
-        PlaceObject(Program.NPC_SYMBOL);
-        PlaceEnemies();
+        CreatePathOnMap();
+        ReplaceZeroIndexes();
     }
 
     private char[][] InitializeMap()
@@ -22,37 +22,102 @@ public class GameMap
             newMap[i] = new char[size];
             for (int j = 0; j < size; j++)
             {
-                newMap[i][j] = Program.BLOCKED_SYMBOL; // Блокированный символ
+                newMap[i][j] = '0'; // ASCII код блокированного символа
             }
         }
         return newMap;
     }
 
-    public void PrintMap(Tuple<int, int> playerPos)
+    private void CreatePathOnMap()
+    {
+        int painterX = size / 2;
+        int painterY = size / 2;
+        int steps = 0;
+        Random random = new Random();
+
+        while (steps < Program.PAINTER_STEPS_AMOUNT)
+        {
+            int direction = random.Next(0, 4);
+            switch (direction)
+            {
+                case 0 when painterX + 1 < size:
+                    painterX += 1;
+                    break;
+                case 1 when painterX - 1 >= 0:
+                    painterX -= 1;
+                    break;
+                case 2 when painterY + 1 < size:
+                    painterY += 1;
+                    break;
+                case 3 when painterY - 1 >= 0:
+                    painterY -= 1;
+                    break;
+            }
+
+            if (map[painterX][painterY] != Program.PATH_SYMBOL)
+            {
+                map[painterX][painterY] = Program.PATH_SYMBOL;
+                steps += 1;
+            }
+        }
+    }
+
+    private void ReplaceZeroIndexes()
     {
         for (int i = 0; i < size; i++)
         {
             for (int j = 0; j < size; j++)
             {
-                Console.Write(playerPos.Equals(new Tuple<int, int>(i, j)) ? Program.PLAYER_SYMBOL : map[i][j]);
+                if (map[i][j] == '0')
+                {
+                    map[i][j] = Program.BLOCKED_SYMBOL;
+                }
             }
-            Console.WriteLine();
         }
     }
 
-    public void PlaceObject(char symbol)
+    public Tuple<int, int> PlaceObject(char symbol)
     {
+        int attempts = 0;
         Random random = new Random();
-        int x = random.Next(0, size);
-        int y = random.Next(0, size);
-        map[x][y] = symbol;
+
+        while (attempts < 1000)
+        {
+            int x = random.Next(0, size);
+            int y = random.Next(0, size);
+            if (map[x][y] == Program.PATH_SYMBOL)
+            {
+                map[x][y] = symbol;
+                return new Tuple<int, int>(x, y);
+            }
+            attempts++;
+        }
+        return null;
     }
 
-    public void PlaceEnemies()
+    public void PrintMap(Tuple<int, int> playerPos, int level, int souls, int health, int healthPotions)
     {
-        for (int i = 0; i < Program.ENEMY_COUNT; i++)
+        List<string> mapLines = new List<string>();
+        for (int i = 0; i < size; i++)
         {
-            PlaceObject(Program.ENEMY_SYMBOL);
+            string line = "";
+            for (int j = 0; j < size; j++)
+            {
+                line += new Tuple<int, int>(i, j).Equals(playerPos) ? Program.PLAYER_SYMBOL : map[i][j];
+            }
+            mapLines.Add(line);
+        }
+
+        string[] levelInfo = {
+            $"Уровень: {level}",
+            $"Души: {souls}",
+            $"Здоровье: {health}",
+            $"Зелья здоровья: {healthPotions}"
+        };
+
+        for (int i = 0; i < mapLines.Count; i++)
+        {
+            Console.WriteLine(mapLines[i] + (i < levelInfo.Length ? " | " + levelInfo[i] : ""));
         }
     }
 }
@@ -60,10 +125,14 @@ public class GameMap
 public class Player
 {
     internal Tuple<int, int> position;
+    internal int health;
+    internal int healthPotions;
 
-    public Player(Tuple<int, int> startPos)
+    public Player(Tuple<int, int> startPos, int health, int healthPotions)
     {
         this.position = startPos;
+        this.health = health;
+        this.healthPotions = healthPotions;
     }
 
     public void Move(string direction, GameMap gameMap)
@@ -72,85 +141,236 @@ public class Player
         int y = position.Item2;
         switch (direction)
         {
-            case "w" when x - 1 >= 0:
+            case "w" when x - 1 >= 0 && gameMap.map[x - 1][y] != Program.BLOCKED_SYMBOL:
                 x -= 1;
                 break;
-            case "s" when x + 1 < Program.MAP_SIZE:
+            case "s" when x + 1 < Program.MAP_SIZE && gameMap.map[x + 1][y] != Program.BLOCKED_SYMBOL:
                 x += 1;
                 break;
-            case "a" when y - 1 >= 0:
+            case "a" when y - 1 >= 0 && gameMap.map[x][y - 1] != Program.BLOCKED_SYMBOL:
                 y -= 1;
                 break;
-            case "d" when y + 1 < Program.MAP_SIZE:
+            case "d" when y + 1 < Program.MAP_SIZE && gameMap.map[x][y + 1] != Program.BLOCKED_SYMBOL:
                 y += 1;
                 break;
         }
         position = new Tuple<int, int>(x, y);
-
-        if (gameMap.map[x][y] == Program.NPC_SYMBOL)
-        {
-            Console.WriteLine(Program.TEXT_NPC_ENCOUNTER);
-        }
-        else if (gameMap.map[x][y] == Program.ENEMY_SYMBOL)
-        {
-            Console.WriteLine(Program.TEXT_ENEMY_ENCOUNTER);
-            PlayRockPaperScissors();
-        }
     }
 
-    private void PlayRockPaperScissors()
+    public void UseHealthPotion()
     {
-        Random random = new Random();
-        string[] choices = { "Камень", "Ножницы", "Бумага" };
-        string playerChoice = "";
-        string enemyChoice = choices[random.Next(0, 3)];
-
-        Console.Write("Выберите ход (Камень, Ножницы, Бумага): ");
-        playerChoice = Console.ReadLine();
-
-        Console.WriteLine($"Враг выбрал: {enemyChoice}");
-
-        if (playerChoice == enemyChoice)
+        if (healthPotions > 0)
         {
-            Console.WriteLine("Ничья!");
-        }
-        else if ((playerChoice == "Камень" && enemyChoice == "Ножницы") ||
-                 (playerChoice == "Ножницы" && enemyChoice == "Бумага") ||
-                 (playerChoice == "Бумага" && enemyChoice == "Камень"))
-        {
-            Console.WriteLine("Вы победили!");
-        }
-        else
-        {
-            Console.WriteLine("Вы проиграли!");
+            health += 1;
+            healthPotions -= 1;
         }
     }
 }
 
-public static class Program
+public class Game
+{
+    private int level;
+    private int souls;
+    private GameMap gameMap;
+    private Player player;
+    private Tuple<int, int> npcPosition;
+    private List<Tuple<int, int>> enemies;
+    private List<Tuple<int, int>> healthPotionsPositions;
+    private List<Tuple<int, int>> soulPositions;
+    private Tuple<int, int> nextLevelPosition;
+
+    public Game(int level = 1, int souls = 0, int healthPotions = 0, int health = Program.INITIAL_HEALTH)
+    {
+        this.level = level;
+        this.souls = souls;
+        gameMap = new GameMap(Program.MAP_SIZE);
+        player = new Player(new Tuple<int, int>(Program.MAP_SIZE / 2, Program.MAP_SIZE / 2), health, healthPotions);
+        npcPosition = gameMap.PlaceObject(Program.NPC_SYMBOL);
+        enemies = PlaceObjects(Program.ENEMY_COUNT, Program.ENEMY_SYMBOL);
+        healthPotionsPositions = PlaceObjects(Program.HEALTH_POTION_COUNT, Program.HEALTH_POTION_SYMBOL);
+        soulPositions = new List<Tuple<int, int>>();
+        nextLevelPosition = null;
+    }
+
+    private void ClearConsole()
+    {
+        Console.Clear();
+    }
+
+    private List<Tuple<int, int>> PlaceObjects(int count, char symbol)
+    {
+        List<Tuple<int, int>> positions = new List<Tuple<int, int>>();
+        for (int i = 0; i < count; i++)
+        {
+            positions.Add(gameMap.PlaceObject(symbol));
+        }
+        return positions;
+    }
+
+    private bool PlayRockPaperScissors()
+    {
+        int playerScore = 0;
+        int enemyScore = 0;
+        Dictionary<int, string> moveMapping = new Dictionary<int, string>
+        {
+            { 1, "Камень" },
+            { 2, "Ножницы" },
+            { 3, "Бумага" }
+        };
+        Random random = new Random();
+
+        while (playerScore < 3 && enemyScore < 3)
+        {
+            Console.Write(Program.TEXT_CHOOSE_MOVE);
+            if (!int.TryParse(Console.ReadLine(), out int playerMoveNum) || !moveMapping.ContainsKey(playerMoveNum))
+            {
+                Console.WriteLine(Program.TEXT_INVALID_INPUT);
+                continue;
+            }
+            string playerMove = moveMapping[playerMoveNum];
+            string enemyMove = moveMapping[random.Next(1, 4)];
+
+            Console.WriteLine($"{Program.TEXT_OPPONENT_CHOICE} {enemyMove}");
+
+            if (playerMove == enemyMove)
+            {
+                Console.WriteLine(Program.TEXT_DRAW);
+            }
+            else if ((playerMove == "Камень" && enemyMove == "Ножницы") ||
+                     (playerMove == "Ножницы" && enemyMove == "Бумага") ||
+                     (playerMove == "Бумага" && enemyMove == "Камень"))
+            {
+                Console.WriteLine(Program.TEXT_ROUND_WIN);
+                playerScore++;
+            }
+            else
+            {
+                Console.WriteLine(Program.TEXT_ROUND_LOSS);
+                enemyScore++;
+            }
+
+            Console.WriteLine(Program.TEXT_SCORE.Replace("{player_score}", playerScore.ToString()).Replace("{enemy_score}", enemyScore.ToString()));
+        }
+
+        if (playerScore == 3)
+        {
+            Console.WriteLine(Program.TEXT_GAME_WIN);
+            Console.ReadLine();
+            return true;
+        }
+        else
+        {
+            Console.WriteLine(Program.TEXT_GAME_LOSS);
+            Console.ReadLine();
+            return false;
+        }
+    }
+
+    public void MainLoop()
+    {
+        while (true)
+        {
+            ClearConsole();
+            gameMap.PrintMap(player.position, level, souls, player.health, player.healthPotions);
+            Console.Write(Program.TEXT_MOVE_PROMPT);
+            string move = Console.ReadLine();
+
+            if (move == "e")
+            {
+                player.UseHealthPotion();
+            }
+            else
+            {
+                player.Move(move, gameMap);
+            }
+
+            if (player.position.Equals(npcPosition))
+            {
+                souls += 1;
+                Console.WriteLine(Program.TEXT_INTERACT_NPC);
+                Console.ReadLine();
+            }
+
+            if (healthPotionsPositions.Contains(player.position))
+            {
+                player.healthPotions += 1;
+                healthPotionsPositions.Remove(player.position);
+                Console.WriteLine(Program.TEXT_FOUND_POTION);
+                Console.ReadLine();
+            }
+
+            if (soulPositions.Contains(player.position))
+            {
+                souls += 1;
+                soulPositions.Remove(player.position);
+                Console.WriteLine(Program.TEXT_FOUND_SOUL);
+                Console.ReadLine();
+            }
+
+            if (enemies.Contains(player.position))
+            {
+                Console.WriteLine(Program.TEXT_ENCOUNTER_ENEMY);
+                if (PlayRockPaperScissors())
+                {
+                    enemies.Remove(player.position);
+                }
+                else
+                {
+                    player.health -= 1;
+                    if (player.health == 0)
+                    {
+                        Console.WriteLine(Program.TEXT_GAME_OVER);
+                        break;
+                    }
+                }
+            }
+
+            if (player.position.Equals(nextLevelPosition))
+            {
+                level++;
+                gameMap = new GameMap(Program.MAP_SIZE);
+                npcPosition = gameMap.PlaceObject(Program.NPC_SYMBOL);
+                enemies = PlaceObjects(Program.ENEMY_COUNT, Program.ENEMY_SYMBOL);
+                healthPotionsPositions = PlaceObjects(Program.HEALTH_POTION_COUNT, Program.HEALTH_POTION_SYMBOL);
+                soulPositions = new List<Tuple<int, int>>();
+                nextLevelPosition = null;
+            }
+        }
+    }
+}
+
+public class Program
 {
     public const int MAP_SIZE = 10;
-    public const int ENEMY_COUNT = 5;
-    public const char BLOCKED_SYMBOL = '#';
+    public const int PAINTER_STEPS_AMOUNT = 100;
     public const char PATH_SYMBOL = '.';
+    public const char BLOCKED_SYMBOL = '#';
     public const char PLAYER_SYMBOL = 'P';
     public const char NPC_SYMBOL = 'N';
     public const char ENEMY_SYMBOL = 'E';
-    public const string TEXT_NPC_ENCOUNTER = "Вы встретили NPC!";
-    public const string TEXT_ENEMY_ENCOUNTER = "Вы встретили врага!";
+    public const char HEALTH_POTION_SYMBOL = 'H';
+    public const int INITIAL_HEALTH = 10;
+    public const int ENEMY_COUNT = 5;
+    public const int HEALTH_POTION_COUNT = 3;
+    public const string TEXT_CHOOSE_MOVE = "Выберите ход (1 - Камень, 2 - Ножницы, 3 - Бумага): ";
+    public const string TEXT_INVALID_INPUT = "Неверный ввод. Попробуйте снова.";
+    public const string TEXT_OPPONENT_CHOICE = "Противник выбрал: ";
+    public const string TEXT_DRAW = "Ничья!";
+    public const string TEXT_ROUND_WIN = "Вы выиграли раунд!";
+    public const string TEXT_ROUND_LOSS = "Вы проиграли раунд!";
+    public const string TEXT_SCORE = "Счет - Вы: {player_score}, Противник: {enemy_score}";
+    public const string TEXT_GAME_WIN = "Вы выиграли игру!";
+    public const string TEXT_GAME_LOSS = "Вы проиграли игру!";
+    public const string TEXT_INTERACT_NPC = "Вы нашли NPC и получили одну душу.";
+    public const string TEXT_FOUND_POTION = "Вы нашли зелье здоровья.";
+    public const string TEXT_FOUND_SOUL = "Вы нашли душу.";
+    public const string TEXT_ENCOUNTER_ENEMY = "Вы встретили врага!";
+    public const string TEXT_MOVE_PROMPT = "Введите направление движения (w/a/s/d) или 'e' для использования зелья здоровья: ";
+    public const string TEXT_GAME_OVER = "Игра окончена.";
 
-    static void Main(string[] args)
+    public static void Main(string[] args)
     {
-        GameMap gameMap = new GameMap(MAP_SIZE);
-        Player player = new Player(new Tuple<int, int>(MAP_SIZE / 2, MAP_SIZE / 2));
-
-        while (true)
-        {
-            Console.Clear();
-            gameMap.PrintMap(player.position);
-            Console.Write("Введите направление (w, a, s, d): ");
-            string direction = Console.ReadLine().ToLower();
-            player.Move(direction, gameMap);
-        }
+        Game game = new Game();
+        game.MainLoop();
     }
 }
