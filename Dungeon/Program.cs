@@ -25,6 +25,18 @@ public class GameMap
         }
         return newMap;
     }
+
+    public void PrintMap(Tuple<int, int> playerPos)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            for (int j = 0; j < size; j++)
+            {
+                Console.Write(playerPos.Equals(new Tuple<int, int>(i, j)) ? Program.PLAYER_SYMBOL : map[i][j]);
+            }
+            Console.WriteLine();
+        }
+    }
 }
 
 public class Player
@@ -34,6 +46,28 @@ public class Player
     public Player(Tuple<int, int> startPos)
     {
         this.position = startPos;
+    }
+
+    public void Move(string direction, GameMap gameMap)
+    {
+        int x = position.Item1;
+        int y = position.Item2;
+        switch (direction)
+        {
+            case "w" when x - 1 >= 0:
+                x -= 1;
+                break;
+            case "s" when x + 1 < Program.MAP_SIZE:
+                x += 1;
+                break;
+            case "a" when y - 1 >= 0:
+                y -= 1;
+                break;
+            case "d" when y + 1 < Program.MAP_SIZE:
+                y += 1;
+                break;
+        }
+        position = new Tuple<int, int>(x, y);
     }
 }
 
@@ -48,5 +82,14 @@ public static class Program
     {
         GameMap gameMap = new GameMap(MAP_SIZE);
         Player player = new Player(new Tuple<int, int>(MAP_SIZE / 2, MAP_SIZE / 2));
+
+        while (true)
+        {
+            Console.Clear();
+            gameMap.PrintMap(player.position);
+            Console.Write("Введите направление (w, a, s, d): ");
+            string direction = Console.ReadLine().ToLower();
+            player.Move(direction, gameMap);
+        }
     }
 }
