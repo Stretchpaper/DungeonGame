@@ -5,11 +5,13 @@ public class GameMap
 {
     private int size;
     internal char[][] map;
+    internal bool[,] visitedCells; // Добавлено поле для отслеживания посещенных ячеек
 
     public GameMap(int size)
     {
         this.size = size;
         this.map = InitializeMap();
+        this.visitedCells = new bool[size, size]; // Инициализация массива посещенных ячеек
         CreatePathOnMap();
         ReplaceZeroIndexes();
     }
@@ -57,6 +59,7 @@ public class GameMap
             if (map[painterX][painterY] != Program.PATH_SYMBOL)
             {
                 map[painterX][painterY] = Program.PATH_SYMBOL;
+                visitedCells[painterX, painterY] = true; // Помечаем ячейку как посещенную
                 steps += 1;
             }
         }
@@ -155,6 +158,7 @@ public class Player
                 break;
         }
         position = new Tuple<int, int>(x, y);
+        gameMap.visitedCells[x, y] = true; // Помечаем ячейку как посещенную
     }
 
     public void UseHealthPotion()
@@ -266,69 +270,89 @@ public class Game
         }
     }
 
-    public void MainLoop()
+    public void PlayGame()
     {
         while (true)
         {
             ClearConsole();
             gameMap.PrintMap(player.position, level, souls, player.health, player.healthPotions);
-            Console.Write(Program.TEXT_MOVE_PROMPT);
-            string move = Console.ReadLine();
 
-            if (move == "e")
+            Console.Write(Program.TEXT_CHOOSE_ACTION);
+            string action = Console.ReadLine();
+            switch (action)
             {
-                player.UseHealthPotion();
-            }
-            else
-            {
-                player.Move(move, gameMap);
+                case "w":
+                case "a":
+                case "s":
+                case "d":
+                    player.Move(action, gameMap);
+                    break;
+                case "h":
+                    player.UseHealthPotion();
+                    break;
+                case "q":
+                    Console.WriteLine(Program.TEXT_GAME_OVER);
+                    return;
+                default:
+                    Console.WriteLine(Program.TEXT_INVALID_INPUT);
+                    break;
             }
 
             if (player.position.Equals(npcPosition))
             {
-                souls += 1;
-                Console.WriteLine(Program.TEXT_INTERACT_NPC);
+                Console.WriteLine(Program.TEXT_MET_NPC);
                 Console.ReadLine();
             }
 
-            if (healthPotionsPositions.Contains(player.position))
+            // Пример: встретили врага
+            foreach (var enemy in enemies)
             {
-                player.healthPotions += 1;
-                healthPotionsPositions.Remove(player.position);
-                Console.WriteLine(Program.TEXT_FOUND_POTION);
-                Console.ReadLine();
-            }
-
-            if (soulPositions.Contains(player.position))
-            {
-                souls += 1;
-                soulPositions.Remove(player.position);
-                Console.WriteLine(Program.TEXT_FOUND_SOUL);
-                Console.ReadLine();
-            }
-
-            if (enemies.Contains(player.position))
-            {
-                Console.WriteLine(Program.TEXT_ENCOUNTER_ENEMY);
-                if (PlayRockPaperScissors())
+                if (player.position.Equals(enemy))
                 {
-                    enemies.Remove(player.position);
-                }
-                else
-                {
-                    player.health -= 1;
-                    if (player.health == 0)
+                    bool won = PlayRockPaperScissors();
+                    if (!won)
                     {
                         Console.WriteLine(Program.TEXT_GAME_OVER);
+                        return;
+                    }
+                    else
+                    {
+                        enemies.Remove(enemy);
                         break;
                     }
                 }
             }
 
+            // Пример: собрали зелье здоровья
+            foreach (var potion in healthPotionsPositions)
+            {
+                if (player.position.Equals(potion))
+                {
+                    player.healthPotions++;
+                    healthPotionsPositions.Remove(potion);
+                    break;
+                }
+            }
+
+            // Пример: собрали душу
+            foreach (var soul in soulPositions)
+            {
+                if (player.position.Equals(soul))
+                {
+                    souls++;
+                    soulPositions.Remove(soul);
+                    break;
+                }
+            }
+
+            // Пример: достигли следующего уровня
             if (player.position.Equals(nextLevelPosition))
             {
                 level++;
+                player.health = Program.INITIAL_HEALTH;
+                player.healthPotions = Program.INITIAL_HEALTH_POTIONS;
                 gameMap = new GameMap(Program.MAP_SIZE);
+                player.position = new Tuple<int, int>(Program.MAP_SIZE / 2, Program.MAP_SIZE / 2);
                 npcPosition = gameMap.PlaceObject(Program.NPC_SYMBOL);
                 enemies = PlaceObjects(Program.ENEMY_COUNT, Program.ENEMY_SYMBOL);
                 healthPotionsPositions = PlaceObjects(Program.HEALTH_POTION_COUNT, Program.HEALTH_POTION_SYMBOL);
@@ -342,35 +366,33 @@ public class Game
 public class Program
 {
     public const int MAP_SIZE = 10;
-    public const int PAINTER_STEPS_AMOUNT = 100;
-    public const char PATH_SYMBOL = '.';
-    public const char BLOCKED_SYMBOL = '#';
-    public const char PLAYER_SYMBOL = 'P';
+    public const int PAINTER_STEPS_AMOUNT = 50;
+    public const char PATH_SYMBOL = '1';
+    public const char BLOCKED_SYMBOL = '█';
+    public const char PLAYER_SYMBOL = '@';
     public const char NPC_SYMBOL = 'N';
     public const char ENEMY_SYMBOL = 'E';
     public const char HEALTH_POTION_SYMBOL = 'H';
-    public const int INITIAL_HEALTH = 10;
     public const int ENEMY_COUNT = 5;
     public const int HEALTH_POTION_COUNT = 3;
-    public const string TEXT_CHOOSE_MOVE = "Выберите ход (1 - Камень, 2 - Ножницы, 3 - Бумага): ";
-    public const string TEXT_INVALID_INPUT = "Неверный ввод. Попробуйте снова.";
-    public const string TEXT_OPPONENT_CHOICE = "Противник выбрал: ";
+    public const int INITIAL_HEALTH = 10;
+    public const int INITIAL_HEALTH_POTIONS = 2;
+    public const string TEXT_CHOOSE_MOVE = "Выберите ход: (1) Камень (2) Ножницы (3) Бумага: ";
+    public const string TEXT_OPPONENT_CHOICE = "Ваш противник выбрал: ";
     public const string TEXT_DRAW = "Ничья!";
     public const string TEXT_ROUND_WIN = "Вы выиграли раунд!";
     public const string TEXT_ROUND_LOSS = "Вы проиграли раунд!";
     public const string TEXT_SCORE = "Счет - Вы: {player_score}, Противник: {enemy_score}";
     public const string TEXT_GAME_WIN = "Вы выиграли игру!";
     public const string TEXT_GAME_LOSS = "Вы проиграли игру!";
-    public const string TEXT_INTERACT_NPC = "Вы нашли NPC и получили одну душу.";
-    public const string TEXT_FOUND_POTION = "Вы нашли зелье здоровья.";
-    public const string TEXT_FOUND_SOUL = "Вы нашли душу.";
-    public const string TEXT_ENCOUNTER_ENEMY = "Вы встретили врага!";
-    public const string TEXT_MOVE_PROMPT = "Введите направление движения (w/a/s/d) или 'e' для использования зелья здоровья: ";
+    public const string TEXT_INVALID_INPUT = "Неверный ввод. Попробуйте снова.";
+    public const string TEXT_MET_NPC = "Вы встретили NPC!";
+    public const string TEXT_CHOOSE_ACTION = "Выберите действие: (w) вверх, (a) влево, (s) вниз, (d) вправо, (h) использовать зелье, (q) выйти: ";
     public const string TEXT_GAME_OVER = "Игра окончена.";
 
-    public static void Main(string[] args)
+    public static void Main()
     {
         Game game = new Game();
-        game.MainLoop();
+        game.PlayGame();
     }
 }
